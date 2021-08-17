@@ -34,6 +34,6 @@ The images in the 'mode_label' are like the following:
 
 In the image, the x-axis is the mode id, the y-axis is the number of the real images classified to the mode, and the color represents the ground-truth label. Images in the 'sorted_mode_label' shows the sorted results. For images in the 'label_mode', the x-axis the ground-truth label, and the color represents mode id.
 
-### Notation
+### Notes
 
-+ The CRP sampling procedure is not very stable, therefore, different time of ACRP stage training may give slightly different outputs.
++ The CRP sampling procedure is at its core Markov Chain Monte Carlo (MCMC) sampling. Other than plotting the likelihood, another good way to see if it has mixed is to plot out the clustering results as the above image. Also, since it is MCMC, different samples could give slightly different results even after it mixes.

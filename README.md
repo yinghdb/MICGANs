@@ -1,6 +1,6 @@
 # Unsupervised Image Generation with Infinite Generative Adversarial Networks
 
-Here is the implementation of MICGANs using DCGAN architecture on MNIST dataset.
+Here is the implementation of MICGANs using DCGAN architecture on MNIST dataset, now is accepted by ICCV 2021.
 
 ### Install Requirements
 

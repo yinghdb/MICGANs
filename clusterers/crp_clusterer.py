@@ -15,8 +15,8 @@ def choice_sample(prob_list, batch=1):
         picked_id = (prob_list[None, :] < rand_nums[:, None]).sum(axis=1)
     return picked_id
 
-class Clusterer():
-    def __init__(self, num_k, multi_gauss, epoch_1, epoch_2, **kwargs):
+class CRPClusterer():
+    def __init__(self, num_k, multi_gauss, epoch_1, epoch_2):
         self.num_k = num_k
         self.multi_gauss = multi_gauss
         self.epoch_1 = epoch_1
@@ -39,7 +39,7 @@ class Clusterer():
             y[i] = m.sample()
         return y
 
-    def crp_sample(self, likelihoods, sample_iter, type="old", save_mid_conds=False):
+    def crp_sample(self, likelihoods, sample_iter, save_mid_conds=False):
         image_num, K_num = likelihoods.shape
         likelihoods = likelihoods / likelihoods.max(dim=1)[0].unsqueeze(1)
 
@@ -52,36 +52,21 @@ class Clusterer():
         if save_mid_conds:
             mid_conds.append(picked_class.clone().detach())
 
-        if type == "old":
-            for _ in range(sample_iter):
-                k_counts = torch.zeros(K_num)
-                for k in range(K_num):
-                    k_counts[k] = (picked_class == k).sum()
+        k_counts = torch.zeros(K_num)
+        for k in range(K_num):
+            k_counts[k] = (picked_class == k).sum()
 
-                count_prior = k_counts
-                post_prob = count_prior[None, :] * likelihoods
+        for _ in range(sample_iter):
+            rand_ids = list(range(image_num))
+            random.shuffle(rand_ids)
+            for im in rand_ids:
+                k_counts[picked_class[im]] -= 1
+                post_prob = k_counts * likelihoods[im]
                 post_prob = post_prob.numpy()
-                for im in range(len(post_prob)):
-                    picked_class[im] = torch.tensor(choice_sample(post_prob[im])[0])
-                
-                if save_mid_conds:
-                    mid_conds.append(picked_class.clone().detach())
-        else:
-            k_counts = torch.zeros(K_num)
-            for k in range(K_num):
-                k_counts[k] = (picked_class == k).sum()
-
-            for _ in range(sample_iter):
-                rand_ids = list(range(image_num))
-                random.shuffle(rand_ids)
-                for im in rand_ids:
-                    k_counts[picked_class[im]] -= 1
-                    post_prob = k_counts * likelihoods[im]
-                    post_prob = post_prob.numpy()
-                    picked_class[im] = torch.tensor(choice_sample(post_prob)[0])
-                    k_counts[picked_class[im]] += 1
-                if save_mid_conds:
-                    mid_conds.append(picked_class.clone().detach())
+                picked_class[im] = torch.tensor(choice_sample(post_prob)[0])
+                k_counts[picked_class[im]] += 1
+            if save_mid_conds:
+                mid_conds.append(picked_class.clone().detach())
 
         return picked_class, mid_conds
 
@@ -118,7 +103,7 @@ class Clusterer():
                 self.multi_gauss.pca_transform(embeddings)
 
             # crp sample
-            picked_class, mid_results = self.crp_sample(likelyhood_ims, sample_iter=self.epoch_2, type="new", save_mid_conds=True)
+            picked_class, mid_results = self.crp_sample(likelyhood_ims, sample_iter=self.epoch_2, save_mid_conds=True)
             mid_results_epochs.append(mid_results)
 
             # collect clustered embeddings
@@ -152,15 +137,6 @@ class Clusterer():
                 if is_removed.sum() > 0:
                     random_ids = choice_sample(np.zeros([len(keep_list)]), is_removed.sum().item())
                     picked_class[is_removed] = torch.tensor(keep_list[random_ids])
-            # for k in removed_list:
-            #     is_removed = picked_class == k
-            #     if is_removed.sum() > 0:
-            #         removed_embeddings = embeddings[is_removed]
-            #         if dim_reduce:
-            #             probs, log_probs = self.multi_gauss.compute_embed_probs_reduce(removed_embeddings)
-            #         else:
-            #             probs, log_probs = self.multi_gauss.compute_embed_probs(removed_embeddings)
-            #         picked_class[is_removed] = torch.argmax(log_probs, dim=1).cpu()
 
         # update distribution
         k_counts = torch.zeros(self.num_k)

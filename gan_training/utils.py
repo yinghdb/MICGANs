@@ -1,9 +1,5 @@
 import torch
-import torch.utils.data
-import torch.utils.data.distributed
-import torchvision
 import numpy as np
-import torch.nn as nn
 
 import os
 
@@ -37,10 +33,6 @@ def compute_purity(y_pred, y_true):
         
         return float(correct) / len(y_pred)
 
-def save_images(imgs, outfile, nrow=8):
-    imgs = imgs / 2 + 0.5  # unnormalize
-    torchvision.utils.save_image(imgs, outfile, nrow=nrow)
-
 
 def get_nsamples(data_loader, N):
     x = []
@@ -55,43 +47,3 @@ def get_nsamples(data_loader, N):
     x = torch.cat(x, dim=0)[:N]
     y = torch.cat(y, dim=0)[:N]
     return x, y
-
-
-def update_average(model_tgt, model_src, beta):
-    param_dict_src = dict(model_src.named_parameters())
-
-    for p_name, p_tgt in model_tgt.named_parameters():
-        p_src = param_dict_src[p_name]
-        assert (p_src is not p_tgt)
-        p_tgt.copy_(beta * p_tgt + (1. - beta) * p_src)
-
-
-def get_most_recent(d, ext):
-    if not os.path.exists(d):
-        print('Directory', d, 'does not exist')
-        return -1 
-    its = []
-    for f in os.listdir(d):
-        try:
-            it = int(f.split(ext + "_")[1].split('.pt')[0])
-            its.append(it)
-        except Exception as e:
-            pass
-    if len(its) == 0:
-        print('Found no files with extension \"%s\" under %s' % (ext, d))
-        return -1
-    return max(its)
-
-def weights_init(m):
-    """
-    Initialise weights of the model.
-    """
-    if(type(m) == nn.ConvTranspose2d or type(m) == nn.Conv2d or type(m) == nn.Linear):
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-    elif(type(m) == nn.BatchNorm2d):
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-
-        nn.init.constant_(m.running_mean, 0.0)
-        nn.init.constant_(m.running_var, 1.0)

@@ -1,10 +1,8 @@
 import yaml
 from torch import optim
 from os import path
-from gan_training.models import generator_dict, discriminator_dict, encoder_dict
+from gan_training.models.dcgan_shallow import Generator, Discriminator, Encoder
 from gan_training.models.multi_gaussian import MultiGaussian
-from gan_training.train import toggle_grad
-from clusterers import clusterer_dict
 
 
 # General config
@@ -56,34 +54,18 @@ def update_recursive(dict1, dict2):
         else:
             dict1[k] = v
 
-
-def get_clusterer(config):
-    return clusterer_dict[config['clusterer']['name']]
-
-
 def build_models(config):
-    # Get classes
-    Generator = generator_dict[config['generator']['name']]
-    Discriminator = discriminator_dict[config['discriminator']['name']]
-    Encoder = encoder_dict[config['encoder']['name']]
-
     # Build models
     generator = Generator(
         num_k=config['condition']['num_k'],
-        z_dim=config['z_dist']['dim'],
-        size=config['data']['img_size'],
-        conditioning=config['generator']['conditioning'],
-        **config['generator']['kwargs'])
+        nc=config['generator']['nc'],
+        z_dim=config['z_dist']['dim'])
     discriminator = Discriminator(
         num_k=config['condition']['num_k'],
-        conditioning=config['discriminator']['conditioning'],
-        size=config['data']['img_size'],
-        **config['discriminator']['kwargs'])
+        nc=config['generator']['nc'])
     encoder = Encoder(
-        num_k=config['condition']['num_k'],
-        embed_dim=config['multi_gauss']['embed_dim'],
-        size=config['data']['img_size'],
-        **config['encoder']['kwargs'])
+        nc=config['generator']['nc'],
+        embed_dim=config['multi_gauss']['embed_dim'])
     multi_gauss = MultiGaussian(
         num_k=config['condition']['num_k'],
         embed_dim=config['multi_gauss']['embed_dim'],
@@ -94,35 +76,22 @@ def build_models(config):
 
     return generator, discriminator, encoder, multi_gauss
 
-
 def build_optimizers(generator, discriminator, encoder, config):
     optimizer = config['training']['optimizer']
     lr_g = config['training']['lr_g']
     lr_d = config['training']['lr_d']
     lr_q = config['training']['lr_q']
 
-    toggle_grad(generator, True)
-    toggle_grad(discriminator, True)
-    toggle_grad(encoder, True)
-
     g_params = generator.parameters()
     d_params = discriminator.parameters()
     q_params = encoder.parameters()
 
-    if optimizer == 'rmsprop':
-        g_optimizer = optim.RMSprop(g_params, lr=lr_g, alpha=0.99, eps=1e-8)
-        d_optimizer = optim.RMSprop(d_params, lr=lr_d, alpha=0.99, eps=1e-8)
-        q_optimizer = optim.RMSprop(q_params, lr=lr_q, alpha=0.99, eps=1e-8)
-    elif optimizer == 'adam':
+    if optimizer == 'adam':
         beta1 = config['training']['beta1']
         beta2 = config['training']['beta2']
         g_optimizer = optim.Adam(g_params, lr=lr_g, betas=(beta1, beta2), eps=1e-8)
         d_optimizer = optim.Adam(d_params, lr=lr_d, betas=(beta1, beta2), eps=1e-8)
         q_optimizer = optim.Adam(q_params, lr=lr_q, betas=(beta1, beta2), eps=1e-8)
-    elif optimizer == 'sgd':
-        g_optimizer = optim.SGD(g_params, lr=lr_g, momentum=0.)
-        d_optimizer = optim.SGD(d_params, lr=lr_d, momentum=0.)
-        q_optimizer = optim.SGD(q_params, lr=lr_q, momentum=0.)
 
     return g_optimizer, d_optimizer, q_optimizer
 

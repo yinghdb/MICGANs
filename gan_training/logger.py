@@ -21,9 +21,7 @@ class Logger(object):
                  img_dir='./imgs',
                  label_mode_dir='./label_mode',
                  mode_label_dir='./mode_label',
-                 sorted_mode_label_dir='./sorted_mode_label',
-                 monitoring=None,
-                 monitoring_dir=None):
+                 sorted_mode_label_dir='./sorted_mode_label'):
         self.stats = dict()
         self.log_dir = log_dir
         self.img_dir = img_dir
@@ -44,27 +42,6 @@ class Logger(object):
         if not os.path.exists(sorted_mode_label_dir):
             os.makedirs(sorted_mode_label_dir)
 
-        if not (monitoring is None or monitoring == 'none'):
-            self.setup_monitoring(monitoring, monitoring_dir)
-        else:
-            self.monitoring = None
-            self.monitoring_dir = None
-
-    def setup_monitoring(self, monitoring, monitoring_dir=None):
-        self.monitoring = monitoring
-        self.monitoring_dir = monitoring_dir
-
-        if monitoring == 'telemetry':
-            import telemetry
-            self.tm = telemetry.ApplicationTelemetry()
-            if self.tm.get_status() == 0:
-                print('Telemetry successfully connected.')
-        elif monitoring == 'tensorboard':
-            import tensorboardX
-            self.tb = tensorboardX.SummaryWriter(monitoring_dir)
-        else:
-            raise NotImplementedError('Monitoring tool "%s" not supported!' %
-                                      monitoring)
 
     def add(self, category, k, v, it):
         if category not in self.stats:
@@ -76,10 +53,6 @@ class Logger(object):
         self.stats[category][k].append((it, v))
 
         k_name = '%s/%s' % (category, k)
-        if self.monitoring == 'telemetry':
-            self.tm.metric_push_async({'metric': k_name, 'value': v, 'it': it})
-        elif self.monitoring == 'tensorboard' and np.array(v).ndim == 0:
-            self.tb.add_scalar(k_name, v, it)
 
     def add_imgs(self, imgs, class_name, it, nrow=8):
         outdir = os.path.join(self.img_dir, class_name)
@@ -90,9 +63,6 @@ class Logger(object):
         imgs = imgs / 2 + 0.5
         imgs = torchvision.utils.make_grid(imgs)
         torchvision.utils.save_image(copy.deepcopy(imgs), outfile, nrow=8)
-
-        if self.monitoring == 'tensorboard':
-            self.tb.add_image(class_name, copy.deepcopy(imgs), it)
 
     def get_last(self, category, k, default=0.):
         if category not in self.stats:

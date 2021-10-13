@@ -7,14 +7,12 @@ from gan_training.utils import compute_purity
 class Evaluator(object):
     def __init__(self,
                  generator,
-                 discriminator,
                  encoder,
                  multi_gauss,
                  train_loader,
                  batch_size=64,
                  device=None):
         self.generator = generator
-        self.discriminator = discriminator
         self.encoder = encoder
         self.multi_gauss = multi_gauss
         self.train_loader = train_loader

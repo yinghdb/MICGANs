@@ -5,7 +5,6 @@ import numpy as np
 
 import os
 import torch.utils.data as data
-from torchvision.datasets.folder import default_loader
 from PIL import Image
 import random
 
@@ -25,19 +24,13 @@ class IndexedDataset(data.Dataset):
 def get_dataset(name,
                 data_dir,
                 size=64,
-                deterministic=False,
                 transform=None):
                 
     transform = transforms.Compose([
-        t for t in [
             transforms.Resize(size),
             transforms.CenterCrop(size),
-            (not deterministic) and transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            (not deterministic) and
-            transforms.Lambda(lambda x: x + 1. / 128 * torch.rand(x.size())),
-        ] if t is not False
     ]) if transform == None else transform
 
     if name == 'image':

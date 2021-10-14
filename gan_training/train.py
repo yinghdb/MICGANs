@@ -21,12 +21,12 @@ class Trainer(object):
 
     def generator_trainstep(self, y, z, condition):
         assert (y.size(0) == z.size(0))
-
+        self.generator.train()
 
         x_fake = self.generator(z, y)
-        d_fake = self.discriminator(x_fake, y, condition).mean()
-        # g_loss = -d_fake
-        g_loss = F.binary_cross_entropy_with_logits(d_fake, torch.ones_like(d_fake))
+        d_fake = self.discriminator(x_fake, y, condition)
+        g_loss = -d_fake.mean()
+        # g_loss = F.binary_cross_entropy_with_logits(d_fake, torch.ones_like(d_fake))
 
         self.g_optimizer.zero_grad()
         g_loss.backward()
@@ -35,19 +35,23 @@ class Trainer(object):
         return g_loss.item()
 
     def discriminator_trainstep(self, x_real, y, z, condition):
+        self.discriminator.train()
+
         # Sampling
         x_fake = self.generator(z, y).detach()
         self.d_optimizer.zero_grad()
         
         x_real.requires_grad_()
         d_real = self.discriminator(x_real, y, condition)
-        d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real))
+        d_fake = self.discriminator(x_fake, y, condition)
+        # d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real))
+        # d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake))
+        d_loss_real = -d_real.mean()
+        d_loss_fake = d_fake.mean()
+
         reg_loss = 10.0 * compute_grad2(d_real, x_real).mean()
         
-        d_fake = self.discriminator(x_fake, y, condition)
-        d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake))
         d_loss = d_loss_real + d_loss_fake + reg_loss
-
         d_loss.backward()
         self.d_optimizer.step()
 

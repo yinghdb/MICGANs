@@ -46,9 +46,9 @@ class Generator(nn.Module):
         out = self.fc(out)
 
         out = out.view(out.size(0), -1, 4, 4)
-        out = F.relu(self.bn1(self.conv1(out), y))
-        out = F.relu(self.bn2(self.conv2(out), y))
-        out = F.relu(self.bn3(self.conv3(out), y))
+        out = F.relu(self.bn1(self.conv1(out)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = F.relu(self.bn3(self.conv3(out)))
         return self.conv_out(out)
 
 

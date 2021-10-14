@@ -9,20 +9,13 @@ Here is the implementation of MICGANs using DCGAN architecture on MNIST dataset,
 
 ### Training
 
-
-First, for initialization stage training:
-
-```
-bash Scripts/mnist/train_initialization.sh
-```
-
-Then, for ACRP stage training:
+You can train the model by using the following command:
 
 ```
-bash Scripts/mnist/train_crp.sh
+bash Scripts/mnist.sh
 ```
 
-The above training is under the setting that mode number is 15.
+The above training is under the configs in './configs/default.yaml'.
 
 ### Visualization
 
